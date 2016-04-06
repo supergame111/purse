@@ -36,7 +36,13 @@ public class PenCipher {
 	 * 返回：无
 	 */
 	public final void gen_SESPK(byte[] key, byte[]data, short dOff, short dLen, byte[] r, short rOff){
-		//todo
+		//3DES
+		byte[] r1 = JCSystem.makeTransientByteArray(dLen, JCSystem.CLEAR_ON_DESELECT);
+		byte[] r2 = JCSystem.makeTransientByteArray(dLen, JCSystem.CLEAR_ON_DESELECT);
+		cdes(key,(short)0,data,dOff,dLen,r1,rOff,Cipher.MODE_ENCRYPT);
+		cdes(key,(short)8,r1,dOff,dLen,r2,rOff,Cipher.MODE_DECRYPT);
+		cdes(key,(short)0,r2,dOff,dLen,r,rOff,Cipher.MODE_ENCRYPT);
+		
 	}
 	
 	/*
@@ -46,6 +52,9 @@ public class PenCipher {
 	 */
 	public final void xorblock8(byte[] d1, byte[] d2, short d2_off){
 		//todo: 两个数据块进行异或，异或结果存入数据块d1中
+		for(short i = 0 ; i < 8 ; i ++){
+			d1[i] = (byte)(d1[i]^d2[d2_off+i]);
+		}
 	}
 	
 	/*
@@ -55,6 +64,22 @@ public class PenCipher {
 	 */
 	public final short pbocpadding(byte[] data, short len){
 		//todo: 填充字符串至8的倍数
+		short new_len = (short)(len + 1);
+		while(new_len%8==0){
+			new_len ++ ;
+		}
+		byte[] new_data = JCSystem.makeTransientByteArray(new_len, JCSystem.CLEAR_ON_DESELECT);
+		for(short i = 0 ; i < len ; i++){
+			new_data[i] = data[i];
+		};
+		new_data[len] = (byte)0x80;
+		
+		for(short i = (short)(len + 1) ; i < new_len ; i++){
+			new_data[i] = (byte)0x00;
+		}
+		
+		data = new_data ;
+		len = new_len ;
 		return len;
 	}
 	
@@ -65,7 +90,22 @@ public class PenCipher {
 	 */
 	public final void gmac4(byte[] key, byte[] data, short dl, byte[] mac){
 		//todo
-		//先填充，再
+		//先填充，再生成
+		pbocpadding(data, dl);
+		byte[] vi = JCSystem.makeTransientByteArray((short)8, JCSystem.CLEAR_ON_DESELECT);
+		byte[] mac1 ;
+		for(byte i = 0 ; i < 8 ; i++){
+			//初始值
+			vi[i] = 0x00;
+		}
+		byte[] vi1 = JCSystem.makeTransientByteArray((short)8, JCSystem.CLEAR_ON_DESELECT);
+		for(short i = 0 ; i < dl ; i = (short)(i + 8)){
+			xorblock8(vi, data, i);
+			//todo des
+			
+		}
+		
+		
 		
 	}
 }
