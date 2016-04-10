@@ -93,19 +93,20 @@ public class PenCipher {
 		//先填充，再生成
 		pbocpadding(data, dl);
 		byte[] vi = JCSystem.makeTransientByteArray((short)8, JCSystem.CLEAR_ON_DESELECT);
-		byte[] mac1 ;
 		for(byte i = 0 ; i < 8 ; i++){
 			//初始值
 			vi[i] = 0x00;
 		}
 		byte[] vi1 = JCSystem.makeTransientByteArray((short)8, JCSystem.CLEAR_ON_DESELECT);
-		for(short i = 0 ; i < dl ; i = (short)(i + 8)){
+		xorblock8(vi, data, (short)0);
+		for(short i = 8 ; i < dl ; i = (short)(i + 8)){
+			//des加密
+			cdes(vi,(short)0, data, i, (short)8, vi1, (short)0, Cipher.MODE_ENCRYPT);
+			//copy
+			Util.arrayCopyNonAtomic(vi1, (short)0, vi, (short)0, (short)8);
+			//异或
 			xorblock8(vi, data, i);
-			//todo des
-			
 		}
-		
-		
-		
+		Util.arrayCopyNonAtomic(vi, (short)0, mac, (short)0, (short)8);
 	}
 }

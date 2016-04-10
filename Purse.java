@@ -17,7 +17,7 @@ public class Purse extends Applet {
 	private BinaryFile personfile;     //持卡人基本文件
 	private EPFile EPfile;              //电子钱包文件
 	
-	private byte[] responseBuffer;      //返回的buffer
+	public byte[] responseBuffer;      //返回的buffer
 	
 	public Purse(byte[] bArray, short bOffset, byte bLength){
 		papdu = new Papdu();
@@ -83,11 +83,27 @@ public class Purse extends Applet {
 			case condef.INS_WRITE_KEY:         return write_key();    //写入key
 			case condef.INS_WRITE_BIN:         return write_bin();       //写入二进制文件（card, person）
 			case condef.INS_READ_BIN:          return read_bin();        //读取二进制文件,注意返回数据
-			
+			case condef.INS_NIIT_TRANS:        return init_trans();      //初始化交易
+			case condef.INS_LOAD:              return load();            //圈存
 		}	
 		ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 		return false;
 	}
+	
+	/*
+	 * 功能：初始化交易
+	 */
+	private boolean init_trans(){
+		
+		switch(papdu.p1){
+			case 0x00:                         return init_load();       //初始化圈存
+			case 0x01:                         return init_purchase();   //初始化交易
+		}
+		ISOException.throwIt(ISO7816.SW_WRONG_P1P2);
+		return true; //
+	}
+	
+	
 	/*
 	 * 功能：创建文件
 	 */
@@ -97,7 +113,6 @@ public class Purse extends Applet {
 		case condef.CARD_FILE:         return Card_file();        //应用基本文件
 		case condef.KEY_FILE:          return Key_file();         //密钥文件
 		case condef.PERSON_FILE:       return Person_file();      //持卡人基本文件
-		
 		//todo:完成创建密钥文件，持卡人基本文件和应用基本文件
 		default: 
 			ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
@@ -253,7 +268,13 @@ public class Purse extends Applet {
 		if(papdu.lc != (short)0x0B)
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		
+		responseBuffer = JCSystem.makeTransientByteArray((short)4, JCSystem.CLEAR_ON_DESELECT);
+		
 		rc = EPfile.load(papdu.pdata);
+		
+		for(byte i = 0 ; i < 4; i++ ){
+			responseBuffer[i] = papdu.pdata[i];
+		}
 		
 		if(rc == 1)
 			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
@@ -290,14 +311,21 @@ public class Purse extends Applet {
 		if(num == 0x00)
 			ISOException.throwIt(ISO7816.SW_RECORD_NOT_FOUND);
 		
-		rc = EPfile.init4load(num, papdu.pdata);
 		
+		responseBuffer = JCSystem.makeTransientByteArray((short)16, JCSystem.CLEAR_ON_DESELECT);
+		for(byte i=0; i < papdu.pdata.length;i++){
+			responseBuffer[i] = papdu.pdata[i];
+		}
+		
+		rc = EPfile.init4load(num, responseBuffer); //to do debug
+		//超额
 		if(rc == 2)
 			ISOException.throwIt((condef.SW_LOAD_FULL));
 		
+		
 		papdu.le = (short)0x10;
 		
-		return true;
+		return false;
 	}
 		/*
 	 * 功能：消费命令的实现

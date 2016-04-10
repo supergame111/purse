@@ -106,6 +106,7 @@ public class EPFile {
 		RandData.GenerateSecureRnd();
 		RandData.getRndValue(pTemp32, (short)0);
 		
+		
 		//产生过程密钥
 		Util.arrayCopyNonAtomic(EP_online, (short)0, pTemp32, (short)4, (short)2);
 		pTemp32[6] = (byte)0x80;
