@@ -10,6 +10,8 @@ public class condef {
 	final static byte INS_READ_BIN        = (byte)0xB0;         //读取二进制文件
 	final static byte INS_NIIT_TRANS      = (byte)0x50;         //初始化圈存和初始化消费命令的INS值
 	final static byte INS_LOAD            = (byte)0x52;         //圈存命令的INS值
+	final static byte INS_PUR             = (byte)0x54;         //消费
+	final static byte INS_BAL             = (byte)0x5c;         //查询余额
 	
 	//－－－－－－－－－－－－－－　FILE TYPE Byte ---------------
 	final static byte KEY_FILE            = (byte)0x3F;         //密钥文件的文件类型

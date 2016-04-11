@@ -193,7 +193,33 @@ public class EPFile {
 	 * 返回： 消费是否超额
 	 */
 	public final short decrease(byte[] data, boolean flag){
-		return 0;
+		short i, t1, t2, ads;
+		
+		ads = (short)0;
+		for(i = 3; i >= 0; i --){
+			t1 = (short)(EP_balance[(short)i] & 0xFF);
+			t2 = (short)(data[i] & 0xFF);
+			if(flag){
+				if(t1 > t2){
+					EP_balance[i] = (byte)(t1 - ads - t2);
+					ads = 0 ;
+				}else if(t1 == t2 && ads == 0){
+					EP_balance[i] = 0 ;
+				}else if(t1 == t2 && ads != 0){
+					EP_balance[i] = (byte)255 ;
+				}else if(t1 < t2){
+					EP_balance[i] = (byte)(t1 + 255 - t2 - ads);
+					ads = 1 ;
+				}
+			}else{
+				if(t1 > t2){
+					ads = 0 ;
+				}else if(t1 < t2){
+					ads = 1 ;
+				}
+			}
+		}
+		return ads;
 	}
 		
 	/*
@@ -202,7 +228,44 @@ public class EPFile {
 	 * 返回：0 命令执行成功；2 消费超额
 	 */
 	public final short init4purchase(short num, byte[] data){
+		short length,rc;
+		
+		Util.arrayCopyNonAtomic(data, (short)1, pTemp42, (short)0, (short)4);  //交易金额
+		Util.arrayCopyNonAtomic(data, (short)5, pTemp81, (short)0, (short)6);  //终端机编号
+		
+		//判断是否超额圈存
+		rc = decrease(pTemp42, false);
+		if(rc != (short)0)
+			return (short)2;
+		
+		//获取密钥信息
+		length = keyfile.readkey(num, pTemp32);
+		keyID = pTemp32[3];
+		algID = pTemp32[4];
+		
+		//产生随机数
+		RandData.GenerateSecureRnd();
+		RandData.getRndValue(pTemp32, (short)0);
+		
+		//产生过程密钥
+		Util.arrayCopyNonAtomic(EP_online, (short)0, pTemp32, (short)4, (short)2);
+		pTemp32[6] = (byte)0x80;
+		pTemp32[7] = (byte)0x00;
+		EnCipher.gen_SESPK(pTemp16, pTemp32, (short)0, (short)8, pTemp82, (short)0); 
+		
+		//响应数据
+		Util.arrayCopyNonAtomic(EP_balance, (short)0, data, (short)0, (short)4);      //电子钱包余额
+		Util.arrayCopyNonAtomic(EP_online, (short)0, data,  (short)4, (short)2);      //电子钱包联机交易序号
+		data[6] = 0x00;
+		data[7] = 0x00;
+	    data[8] = 0x00;   //透支限额
+	    
+		data[9] = keyID;                                                              //密钥版本号
+		data[10] = algID;                                                              //算法标识
+		RandData.getRndValue(data, (short)11);                                         //随机数
+		
 		return 0;
+		
 		
 	}
 	/*
@@ -211,6 +274,61 @@ public class EPFile {
 	 * 返回：0 命令执行成功； 1 MAC校验错误 2 消费超额； 3 密钥未找到
 	 */
 	public final short purchase(byte[] data){
+		short rc;
+	
+		//生成MAC1验证
+		Util.arrayCopyNonAtomic(EP_balance, (short)0, pTemp32, (short)0, (short)4);   //电子钱包余额
+		Util.arrayCopyNonAtomic(data, (short)1, pTemp32, (short)4, (short)4);         //交易金额
+		pTemp32[8] = (byte)0x02;                                                      //交易类型标识
+		Util.arrayCopyNonAtomic(data, (short)5, pTemp32, (short)9, (short)6);         //终端机编号
+		Util.arrayCopyNonAtomic(pTemp32, (short)0, data, (short)0x00, (short)0x0F);
+		EnCipher.gmac4(pTemp82, pTemp32, (short)0x0F, pTemp41);
+		
+		//检验MAC1
+		if(Util.arrayCompare(data, (short)11, pTemp41, (short)0, (short)4) != (byte)0x00)
+			return (short)1;
+		
+		//电子钱包数目减少
+		rc = decrease(pTemp42, true);
+		if(rc != (short)0)
+			return 2;
+		
+		//过程密钥产生MAC2
+		Util.arrayCopyNonAtomic(pTemp42, (short)0, pTemp32, (short)0, (short)4);       //交易金额
+		pTemp32[4] = (byte)0x02;                                                       //交易标识
+		Util.arrayCopyNonAtomic(pTemp81, (short)0, pTemp32, (short)5, (short)6);       //终端机编号
+		Util.arrayCopyNonAtomic(data, (short)0, pTemp32, (short)11, (short)7);         //交易日期与时间
+		EnCipher.gmac4(pTemp82, pTemp32, (short)0x12, pTemp41);
+		Util.arrayCopyNonAtomic(pTemp41, (short)0, data, (short)0, (short)4);
+		
+		//TAC数据
+		Util.arrayCopyNonAtomic(EP_balance, (short)0, pTemp32, (short)0, (short)4);    //电子钱包余额
+		Util.arrayCopyNonAtomic(EP_online, (short)0, pTemp32, (short)4, (short)2);     //电子钱包联机交易序号
+		Util.arrayCopyNonAtomic(pTemp42, (short)0, pTemp32, (short)6, (short)4);       //交易金额
+		pTemp32[10] = (byte)0x02;                                                      //交易类型
+		Util.arrayCopyNonAtomic(pTemp81, (short)0, pTemp32, (short)11, (short)6);      //终端机编号
+		Util.arrayCopyNonAtomic(data, (short)0, pTemp32, (short)17, (short)7);         //交易日期与时间
+		
+		//联机交易序号加1
+		rc = Util.makeShort(EP_online[0], EP_online[1]);
+		rc ++;
+		if(rc > (short)256)
+			rc = (short)1;
+		Util.setShort(EP_online, (short)0, rc);
+		
+		//TAC的计算
+		short length, num;
+		num = keyfile.findKeyByType((byte)0x34);
+		length = keyfile.readkey(num, pTemp16);
+		
+		if(length == 0)
+			return (short)3;
+		
+		Util.arrayCopyNonAtomic(pTemp16, (short)5, pTemp82, (short)0, (short)8);
+		
+		EnCipher.xorblock8(pTemp82, pTemp16, (short)13);
+		EnCipher.gmac4(pTemp82, pTemp32, (short)0x18, pTemp41);
+		Util.arrayCopyNonAtomic(pTemp41, (short)0, data, (short)4, (short)4);
 		return 0;
 	}
 	/*
@@ -219,6 +337,9 @@ public class EPFile {
 	 * 返回： 0
 	 */
 	public final short get_balance(byte[] data){
+		for(byte i = 0 ; i < 4 ; i++){
+			data[i] = EP_balance[i];
+		}
 		return 0;
 	}
 }

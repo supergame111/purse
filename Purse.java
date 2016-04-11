@@ -85,6 +85,8 @@ public class Purse extends Applet {
 			case condef.INS_READ_BIN:          return read_bin();        //读取二进制文件,注意返回数据
 			case condef.INS_NIIT_TRANS:        return init_trans();      //初始化交易
 			case condef.INS_LOAD:              return load();            //圈存
+			case condef.INS_PUR:               return purchase();        //消费
+			case condef.INS_BAL:               return get_balance();     //查询余额
 		}	
 		ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 		return false;
@@ -285,7 +287,7 @@ public class Purse extends Applet {
 		
 		papdu.le = (short)4;
 		
-		return true;
+		return false;
 	}
 
 	/*
@@ -327,23 +329,96 @@ public class Purse extends Applet {
 		
 		return false;
 	}
-		/*
-	 * 功能：消费命令的实现
-	 */
-	private boolean purchase(){
-		return true;
-	}
-	/*
-	 * 功能：余额查询功能的实现
-	 */
-	private boolean get_balance(){
-		return true;
-	}
 	
 	/*
 	 * 功能：消费初始化的实现
 	 */
 	private boolean init_purchase(){
-		return true;
+		short num,rc;
+		
+		if(papdu.cla != (byte)0x80)
+			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+		
+		if(papdu.p1 != (byte)0x01 && papdu.p2 != (byte)0x02)
+			ISOException.throwIt(ISO7816.SW_WRONG_P1P2);
+		
+		if(papdu.lc != (short)0x0B)
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		
+		if(EPfile == null)
+			ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
+		
+		num = keyfile.findkey(papdu.pdata[0]);
+		
+		if(num == 0x00)
+			ISOException.throwIt(ISO7816.SW_RECORD_NOT_FOUND);
+		
+		responseBuffer = JCSystem.makeTransientByteArray(papdu.le, JCSystem.CLEAR_ON_DESELECT);
+		for(byte i=0; i < papdu.pdata.length;i++){
+			responseBuffer[i] = papdu.pdata[i];
+		}
+		
+		
+		rc = EPfile.init4purchase(num, responseBuffer); 
+		
+		//超额
+		if(rc == 2)
+			ISOException.throwIt((condef.SW_LOAD_FULL));
+		
+		
+		papdu.le = (short)0x10;
+		
+		return false;
 	}
+	
+		/*
+	 * 功能：消费命令的实现
+	 */
+	private boolean purchase(){
+		short rc;
+		
+		if(papdu.cla != (byte)0x80)
+			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+		
+		if(papdu.p1 != (byte)0x01 && papdu.p2 != (byte)0x00)
+			ISOException.throwIt(ISO7816.SW_WRONG_P1P2);
+		
+		if(EPfile == null)
+			ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
+		
+		if(papdu.lc != (short)0x0F)
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		
+		responseBuffer = JCSystem.makeTransientByteArray((short)8, JCSystem.CLEAR_ON_DESELECT);
+		
+		rc = EPfile.purchase(papdu.pdata);
+		
+		for(byte i = 0 ; i < 8; i++ ){
+			responseBuffer[i] = papdu.pdata[i];
+		}
+		
+		if(rc == 1)
+			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+		else if(rc == 2)
+			ISOException.throwIt(condef.SW_LOAD_FULL);
+		else if(rc == 3)
+			ISOException.throwIt(ISO7816.SW_RECORD_NOT_FOUND);
+		
+		papdu.le = (short)8;
+		return false;
+	}
+	/*
+	 * 功能：余额查询功能的实现
+	 */
+	private boolean get_balance(){
+		if(papdu.cla != (byte)0x80)
+			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+		
+		
+		responseBuffer = JCSystem.makeTransientByteArray((short)4, JCSystem.CLEAR_ON_DESELECT);
+		EPfile.get_balance(responseBuffer);
+		return false;
+	}
+	
+	
 }
