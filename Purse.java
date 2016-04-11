@@ -317,7 +317,7 @@ public class Purse extends Applet {
 			responseBuffer[i] = papdu.pdata[i];
 		}
 		
-		rc = EPfile.init4load(num, responseBuffer); //to do debug
+		rc = EPfile.init4load(num, responseBuffer); 
 		//³¬¶î
 		if(rc == 2)
 			ISOException.throwIt((condef.SW_LOAD_FULL));

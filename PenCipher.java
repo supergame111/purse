@@ -1,5 +1,6 @@
 package purse;
 
+import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.DESKey;
@@ -101,12 +102,12 @@ public class PenCipher {
 		xorblock8(vi, data, (short)0);
 		for(short i = 8 ; i < dl ; i = (short)(i + 8)){
 			//des¼ÓÃÜ
-			cdes(vi,(short)0, data, i, (short)8, vi1, (short)0, Cipher.MODE_ENCRYPT);
+			cdes(key,(short)0, vi, (short)0, (short)8, vi1, (short)0, Cipher.MODE_ENCRYPT);
 			//copy
 			Util.arrayCopyNonAtomic(vi1, (short)0, vi, (short)0, (short)8);
 			//Òì»ò
 			xorblock8(vi, data, i);
 		}
-		Util.arrayCopyNonAtomic(vi, (short)0, mac, (short)0, (short)8);
+		Util.arrayCopyNonAtomic(vi, (short)0, mac, (short)0, (short)4);
 	}
 }

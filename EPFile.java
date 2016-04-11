@@ -1,5 +1,6 @@
 package purse;
 
+import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 
@@ -96,6 +97,7 @@ public class EPFile {
 		if(rc != (short)0)
 			return (short)2;
 		
+		
 		//密钥获取
 		length = keyfile.readkey(num, pTemp32);
 		keyID = pTemp32[3];
@@ -113,7 +115,6 @@ public class EPFile {
 		pTemp32[7] = (byte)0x00;
 		
 		EnCipher.gen_SESPK(pTemp16, pTemp32, (short)0, (short)8, pTemp82, (short)0); 
-		
 		//产生MAC1
 		Util.arrayCopyNonAtomic(EP_balance, (short)0, pTemp32, (short)0, (short)4);   //电子钱包余额
 		Util.arrayCopyNonAtomic(data, (short)1, pTemp32, (short)4, (short)4);         //交易金额
