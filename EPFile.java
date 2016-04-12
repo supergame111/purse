@@ -277,12 +277,12 @@ public class EPFile {
 		short rc;
 	
 		//生成MAC1验证
-		ISOException.throwIt((short)0x0001);
 		Util.arrayCopyNonAtomic(EP_balance, (short)0, pTemp32, (short)0, (short)4);   //电子钱包余额
-		Util.arrayCopyNonAtomic(pTemp42, (short)1, pTemp32, (short)4, (short)4);         //交易金额
+		Util.arrayCopyNonAtomic(pTemp42, (short)0, pTemp32, (short)4, (short)4);         //交易金额
 		pTemp32[8] = (byte)0x02;                                                      //交易类型标识
 		Util.arrayCopyNonAtomic(pTemp81, (short)0, pTemp32, (short)9, (short)6);         //终端机编号
 		//pTemp82过程密钥，pTemp32数据，pTemp41MAC1
+		
 		EnCipher.gmac4(pTemp82, pTemp32, (short)0x0F, pTemp41);
 		
 		
