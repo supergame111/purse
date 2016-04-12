@@ -353,13 +353,14 @@ public class Purse extends Applet {
 		if(num == 0x00)
 			ISOException.throwIt(ISO7816.SW_RECORD_NOT_FOUND);
 		
-		responseBuffer = JCSystem.makeTransientByteArray(papdu.lc, JCSystem.CLEAR_ON_DESELECT);
+		responseBuffer = JCSystem.makeTransientByteArray(papdu.le, JCSystem.CLEAR_ON_DESELECT);
 		for(byte i=0; i < papdu.pdata.length;i++){
 			responseBuffer[i] = papdu.pdata[i];
 		}
 		
-		
 		rc = EPfile.init4purchase(num, responseBuffer); 
+		
+		
 		//³¬¶î
 		if(rc == 1)
 			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
@@ -368,7 +369,7 @@ public class Purse extends Applet {
 		else if(rc == 3)
 			ISOException.throwIt(ISO7816.SW_RECORD_NOT_FOUND);
 		
-		papdu.le = (short)0x08;
+		
 		return false;
 	}
 	
@@ -420,4 +421,6 @@ public class Purse extends Applet {
 		return false;
 	}
 	
+
 }
+
