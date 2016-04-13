@@ -19,4 +19,10 @@ The APDU is instrument constructed like
  
  Randgenerator.java,  generate random data.
  
- Binary.java, bin files, the card, owner, key information
+ Binary.java, bin files, the card, owner information.
+ 
+ KeyFile.java, store keys.
+ 
+ PenCipher.java, do the cipher operation like DES and 3DES
+ 
+ 
