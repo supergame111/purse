@@ -23,6 +23,8 @@ The APDU is instrument constructed like
  
  KeyFile.java, store keys.
  
- PenCipher.java, do the cipher operation like DES and 3DES
+ PenCipher.java, do the cipher operation like DES and 3DES.
  
+ Papdu.java, the APDU class used after received the APDU.
  
+ condef.java, public class store some constants. 
